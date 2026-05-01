@@ -444,8 +444,8 @@
         <button class="opt-btn" data-frame="portrait" title="Portrait">
           <span class="icon">🖼</span>Portrait
         </button>
-        <button class="opt-btn" data-frame="panoramic" title="Panoramic">
-          <span class="icon">🌄</span>Pano
+        <button class="opt-btn" data-frame="ig-portrait" title="Instagram Portrait 3:4 with square photo">
+          <span class="icon">📸</span>IG 3:4
         </button>
       </div>
     </div>
@@ -572,7 +572,10 @@ const FRAMES = {
   'polaroid-wide':    { photoW: 0.88, photoH: 0.62, borderT: 0.06, borderLR: 0.06, borderB: 0.14 },
   'instax-mini':      { photoW: 0.82, photoH: 0.6, borderT: 0.05, borderLR: 0.09, borderB: 0.22 },
   'portrait':         { photoW: 0.82, photoH: 0.78, borderT: 0.06, borderLR: 0.09, borderB: 0.15 },
-  'panoramic':        { photoW: 0.88, photoH: 0.5, borderT: 0.07, borderLR: 0.06, borderB: 0.16 },
+  // Instagram 3:4 frame (1080×1350) with 1:1 square photo window
+  // fw=1200 → fh=1600 (4/3 ratio). Photo is square: photoW=photoH=0.846*fw
+  // borderLR=borderT=0.077*fw, borderB fills the rest = (4/3 - 0.077 - 0.846)*fw ≈ 0.41*fw
+  'ig-portrait':      { photoW: 0.846, photoH: 0.846, borderT: 0.077, borderLR: 0.077, borderB: 0.41 },
 };
 
 // Output canvas base width
