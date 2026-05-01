@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Polaroid Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --warm-white: #faf7f2;
+    --shadow: #c8b89a;
+    --dark: #1a1410;
+    --ink: #2d2418;
+    --accent: #c94a2a;
+    --accent2: #3a6b4a;
+    --border-col: #e8e0d0;
+    --panel-bg: #ede8de;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--dark);
+    color: var(--cream);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 50%, rgba(60,30,10,0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(30,20,10,0.5) 0%, transparent 50%);
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.5;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 32px;
+    border-bottom: 1px solid rgba(200,184,154,0.2);
+  }
+
+  .logo {
+    font-family: 'Special Elite', serif;
+    font-size: 26px;
+    letter-spacing: 0.05em;
+    color: var(--cream);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--shadow);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-left: auto;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    min-height: calc(100vh - 65px);
+  }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    background: rgba(15,10,5,0.6);
+    border-right: 1px solid rgba(200,184,154,0.15);
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--shadow);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(200,184,154,0.2);
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1.5px dashed rgba(200,184,154,0.4);
+    border-radius: 4px;
+    padding: 32px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(201,74,42,0.06);
+  }
+  .upload-zone input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    display: block;
+    opacity: 0.6;
+  }
+  .upload-zone p {
+    font-size: 11px;
+    color: var(--shadow);
+    line-height: 1.6;
+  }
+  .upload-zone strong {
+    color: var(--cream);
+    font-weight: 500;
+  }
+
+  /* Grid selectors */
+  .grid-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .grid-selector.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .opt-btn {
+    background: rgba(200,184,154,0.08);
+    border: 1.5px solid rgba(200,184,154,0.2);
+    border-radius: 4px;
+    color: var(--shadow);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .opt-btn:hover {
+    border-color: var(--shadow);
+    color: var(--cream);
+    background: rgba(200,184,154,0.12);
+  }
+  .opt-btn.active {
+    border-color: var(--accent);
+    color: var(--cream);
+    background: rgba(201,74,42,0.15);
+  }
+  .opt-btn .icon {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  /* Sliders */
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .slider-row label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--shadow);
+  }
+  .slider-row label span { color: var(--cream); }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: rgba(200,184,154,0.2);
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid var(--dark);
+  }
+
+  /* Color swatch picker */
+  .swatch-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .swatch {
+    width: 28px; height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.active { border-color: var(--accent); }
+  .swatch-custom {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; background: rgba(200,184,154,0.1);
+    border: 1.5px dashed rgba(200,184,154,0.4);
+    position: relative; overflow: hidden;
+  }
+  .swatch-custom input[type=color] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  /* Caption input */
+  .caption-input {
+    width: 100%;
+    background: rgba(200,184,154,0.06);
+    border: 1.5px solid rgba(200,184,154,0.2);
+    border-radius: 4px;
+    color: var(--cream);
+    font-family: 'Special Elite', serif;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .caption-input:focus { border-color: var(--shadow); }
+  .caption-input::placeholder { color: rgba(200,184,154,0.35); font-size: 11px; font-family: 'DM Mono', monospace; }
+
+  /* Export button */
+  .export-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .export-btn:hover { background: #b03d22; transform: translateY(-1px); }
+  .export-btn:active { transform: translateY(0); }
+  .export-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .format-row {
+    display: flex; gap: 6px;
+  }
+  .fmt-btn {
+    flex: 1;
+    background: rgba(200,184,154,0.08);
+    border: 1.5px solid rgba(200,184,154,0.2);
+    border-radius: 4px;
+    color: var(--shadow);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 7px 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .fmt-btn:hover { border-color: var(--shadow); color: var(--cream); }
+  .fmt-btn.active { border-color: var(--accent2); color: #7ecf97; background: rgba(58,107,74,0.15); }
+
+  /* ---- CANVAS AREA ---- */
+  .canvas-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    position: relative;
+    min-height: 500px;
+  }
+
+  .empty-state {
+    text-align: center;
+    opacity: 0.35;
+  }
+  .empty-state .big-icon { font-size: 80px; margin-bottom: 16px; display: block; opacity: 0.4; }
+  .empty-state h2 { font-family: 'Special Elite', serif; font-size: 22px; margin-bottom: 8px; }
+  .empty-state p { font-size: 11px; color: var(--shadow); }
+
+  .polaroid-wrapper {
+    position: relative;
+    display: inline-block;
+    cursor: grab;
+    user-select: none;
+  }
+
+  /* Preview canvas */
+  #previewCanvas {
+    display: block;
+    max-width: 100%;
+    max-height: calc(100vh - 150px);
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.3),
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(0,0,0,0.2);
+    cursor: default;
+  }
+
+  .move-hint {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    color: var(--shadow);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .polaroid-wrapper:hover .move-hint { opacity: 1; }
+
+  /* Instruction overlay on canvas */
+  .canvas-overlay-hint {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(200,184,154,0.2);
+    border-radius: 4px;
+    font-size: 9px;
+    color: var(--shadow);
+    padding: 6px 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .canvas-area:hover .canvas-overlay-hint { opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }
+    .sidebar {
+      border-right: none;
+      border-bottom: 1px solid rgba(200,184,154,0.15);
+      padding: 16px;
+      gap: 20px;
+      max-height: 55vh;
+    }
+    header { padding: 14px 18px; }
+    .tagline { display: none; }
+    .canvas-area { padding: 20px 16px; min-height: 340px; }
+    .logo { font-size: 20px; }
+  }
+
+  /* Quality indicator */
+  .quality-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    color: var(--shadow);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border: 1px solid rgba(200,184,154,0.15);
+    border-radius: 20px;
+    background: rgba(200,184,154,0.04);
+  }
+  .quality-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 6px var(--accent2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Polaroid <span>Lab</span></div>
+  <div class="quality-badge"><span class="quality-dot"></span>Darkroom Ready</div>
+  <div class="tagline">Instant Photo Studio</div>
+</header>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Upload -->
+    <div>
+      <div class="section-label">Load Film</div>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*">
+        <span class="upload-icon">📷</span>
+        <p><strong>Drop a photo here</strong><br>or click to browse<br><small style="color:rgba(200,184,154,0.4)">JPG · PNG · WEBP</small></p>
+      </div>
+    </div>
+
+    <!-- Frame Format (output ratio) -->
+    <div>
+      <div class="section-label">Frame Format</div>
+      <div class="grid-selector" id="frameFormats">
+        <button class="opt-btn active" data-frame="polaroid-classic" title="Classic Polaroid">
+          <span class="icon">⬜</span>Classic
+        </button>
+        <button class="opt-btn" data-frame="polaroid-square" title="Square crop">
+          <span class="icon">◼</span>Square
+        </button>
+        <button class="opt-btn" data-frame="polaroid-wide" title="Wide landscape">
+          <span class="icon">▬</span>Wide
+        </button>
+        <button class="opt-btn" data-frame="instax-mini" title="Instax Mini">
+          <span class="icon">📱</span>Instax
+        </button>
+        <button class="opt-btn" data-frame="portrait" title="Portrait">
+          <span class="icon">🖼</span>Portrait
+        </button>
+        <button class="opt-btn" data-frame="panoramic" title="Panoramic">
+          <span class="icon">🌄</span>Pano
+        </button>
+      </div>
+    </div>
+
+    <!-- Inner Crop -->
+    <div>
+      <div class="section-label">Inner Crop</div>
+      <div class="grid-selector cols-2" id="cropFormats">
+        <button class="opt-btn active" data-crop="fill">
+          <span class="icon">⬛</span>Fill
+        </button>
+        <button class="opt-btn" data-crop="fit">
+          <span class="icon">🔲</span>Fit
+        </button>
+        <button class="opt-btn" data-crop="1:1">
+          <span class="icon">⬜</span>1 : 1
+        </button>
+        <button class="opt-btn" data-crop="4:3">
+          <span class="icon">▭</span>4 : 3
+        </button>
+        <button class="opt-btn" data-crop="16:9">
+          <span class="icon">▬</span>16 : 9
+        </button>
+        <button class="opt-btn" data-crop="3:4">
+          <span class="icon">▯</span>3 : 4
+        </button>
+      </div>
+    </div>
+
+    <!-- Border Color -->
+    <div>
+      <div class="section-label">Border Tint</div>
+      <div class="swatch-row" id="borderColors">
+        <div class="swatch active" data-color="#faf7f2" style="background:#faf7f2;" title="Classic White"></div>
+        <div class="swatch" data-color="#f5edd8" style="background:#f5edd8;" title="Vintage Cream"></div>
+        <div class="swatch" data-color="#e8d5c4" style="background:#e8d5c4;" title="Warm Sand"></div>
+        <div class="swatch" data-color="#1a1a1a" style="background:#1a1a1a;" title="Midnight"></div>
+        <div class="swatch" data-color="#2d3a2d" style="background:#2d3a2d;" title="Darkroom"></div>
+        <div class="swatch" data-color="#3a2d1a" style="background:#3a2d1a;" title="Sepia"></div>
+        <div class="swatch swatch-custom" data-color="custom" title="Custom Color">+
+          <input type="color" id="customColor" value="#ffffff">
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Pan -->
+    <div>
+      <div class="section-label">Position & Zoom</div>
+      <div class="slider-row">
+        <label>Zoom <span id="zoomVal">100%</span></label>
+        <input type="range" id="zoomSlider" min="50" max="300" value="100">
+      </div>
+      <div class="slider-row">
+        <label>Offset X <span id="oxVal">0</span></label>
+        <input type="range" id="oxSlider" min="-100" max="100" value="0">
+      </div>
+      <div class="slider-row">
+        <label>Offset Y <span id="oyVal">0</span></label>
+        <input type="range" id="oySlider" min="-100" max="100" value="0">
+      </div>
+      <div class="slider-row">
+        <label>Shadow <span id="shadowVal">40%</span></label>
+        <input type="range" id="shadowSlider" min="0" max="100" value="40">
+      </div>
+    </div>
+
+    <!-- Caption -->
+    <div>
+      <div class="section-label">Caption</div>
+      <input class="caption-input" id="captionInput" type="text" placeholder="Write something here...">
+    </div>
+
+    <!-- Export -->
+    <div>
+      <div class="section-label">Export</div>
+      <div class="format-row" id="exportFormats" style="margin-bottom:10px;">
+        <button class="fmt-btn active" data-fmt="png">PNG</button>
+        <button class="fmt-btn" data-fmt="jpeg">JPEG</button>
+        <button class="fmt-btn" data-fmt="webp">WEBP</button>
+      </div>
+      <button class="export-btn" id="exportBtn" disabled>▼ Save Photo</button>
+    </div>
+
+  </aside>
+
+  <!-- CANVAS AREA -->
+  <main class="canvas-area" id="canvasArea">
+    <div class="empty-state" id="emptyState">
+      <span class="big-icon">🎞</span>
+      <h2>No film loaded</h2>
+      <p>Upload a photo to begin developing</p>
+    </div>
+    <div class="polaroid-wrapper" id="polaroidWrapper" style="display:none;">
+      <canvas id="previewCanvas"></canvas>
+      <div class="move-hint">↔ Drag to reposition image</div>
+    </div>
+    <div class="canvas-overlay-hint" id="overlayHint">Drag to pan · Pinch to zoom</div>
+  </main>
+
+</div>
+
+<script>
+// ==============================
+// STATE
+// ==============================
+const state = {
+  img: null,
+  frame: 'polaroid-classic',
+  crop: 'fill',
+  borderColor: '#faf7f2',
+  zoom: 1,
+  offsetX: 0,
+  offsetY: 0,
+  shadow: 0.4,
+  caption: '',
+  exportFmt: 'png',
+};
+
+// Frame configs: { photoRatio, borderT, borderLR, borderBottom }
+// All values as fraction of frame width
+const FRAMES = {
+  'polaroid-classic': { photoW: 0.845, photoH: 0.72, borderT: 0.077, borderLR: 0.077, borderB: 0.18 },
+  'polaroid-square':  { photoW: 0.845, photoH: 0.845, borderT: 0.077, borderLR: 0.077, borderB: 0.077 },
+  'polaroid-wide':    { photoW: 0.88, photoH: 0.62, borderT: 0.06, borderLR: 0.06, borderB: 0.14 },
+  'instax-mini':      { photoW: 0.82, photoH: 0.6, borderT: 0.05, borderLR: 0.09, borderB: 0.22 },
+  'portrait':         { photoW: 0.82, photoH: 0.78, borderT: 0.06, borderLR: 0.09, borderB: 0.15 },
+  'panoramic':        { photoW: 0.88, photoH: 0.5, borderT: 0.07, borderLR: 0.06, borderB: 0.16 },
+};
+
+// Output canvas base width
+const BASE_WIDTH = 1200;
+
+// ==============================
+// DOM REFS
+// ==============================
+const canvas = document.getElementById('previewCanvas');
+const ctx = canvas.getContext('2d');
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+const emptyState = document.getElementById('emptyState');
+const polaroidWrapper = document.getElementById('polaroidWrapper');
+const exportBtn = document.getElementById('exportBtn');
+const captionInput = document.getElementById('captionInput');
+const zoomSlider = document.getElementById('zoomSlider');
+const oxSlider = document.getElementById('oxSlider');
+const oySlider = document.getElementById('oySlider');
+const shadowSlider = document.getElementById('shadowSlider');
+
+// ==============================
+// RENDERING
+// ==============================
+function computeFrameDimensions() {
+  const fw = BASE_WIDTH;
+  const cfg = FRAMES[state.frame];
+
+  // Total frame height derived from photo area + borders
+  const photoW = Math.round(fw * cfg.photoW);
+  const photoH = Math.round(fw * cfg.photoH);
+  const borderLR = Math.round(fw * cfg.borderLR);
+  const borderT = Math.round(fw * cfg.borderT);
+  const borderB = Math.round(fw * cfg.borderB);
+
+  const fh = borderT + photoH + borderB;
+
+  return { fw, fh, photoW, photoH, borderLR, borderT, borderB };
+}
+
+function getPhotoSourceRect() {
+  if (!state.img) return null;
+  const { photoW, photoH } = computeFrameDimensions();
+  const img = state.img;
+
+  let srcX, srcY, srcW, srcH;
+
+  if (state.crop === 'fill') {
+    // Scale to fill photo area
+    const imgRatio = img.width / img.height;
+    const frameRatio = photoW / photoH;
+    if (imgRatio > frameRatio) {
+      srcH = img.height;
+      srcW = img.height * frameRatio;
+    } else {
+      srcW = img.width;
+      srcH = img.width / frameRatio;
+    }
+    srcX = (img.width - srcW) / 2;
+    srcY = (img.height - srcH) / 2;
+  } else if (state.crop === 'fit') {
+    srcX = 0; srcY = 0; srcW = img.width; srcH = img.height;
+  } else {
+    // ratio like "4:3"
+    const [rw, rh] = state.crop.split(':').map(Number);
+    const cropRatio = rw / rh;
+    const imgRatio = img.width / img.height;
+    if (imgRatio > cropRatio) {
+      srcH = img.height;
+      srcW = img.height * cropRatio;
+    } else {
+      srcW = img.width;
+      srcH = img.width / cropRatio;
+    }
+    srcX = (img.width - srcW) / 2;
+    srcY = (img.height - srcH) / 2;
+  }
+
+  return { srcX, srcY, srcW, srcH };
+}
+
+function drawPolaroid(targetCtx, fw, fh, opts = {}) {
+  const { photoW, photoH, borderLR, borderT, borderB } = computeFrameDimensions();
+  const { noShadow } = opts;
+
+  const img = state.img;
+
+  // Clear
+  targetCtx.clearRect(0, 0, fw, fh);
+
+  // Drop shadow on the frame
+  if (!noShadow && state.shadow > 0) {
+    const sh = state.shadow;
+    targetCtx.save();
+    targetCtx.shadowColor = `rgba(0,0,0,${sh * 0.8})`;
+    targetCtx.shadowBlur = 40 * sh * (fw / BASE_WIDTH);
+    targetCtx.shadowOffsetX = 8 * sh * (fw / BASE_WIDTH);
+    targetCtx.shadowOffsetY = 16 * sh * (fw / BASE_WIDTH);
+    targetCtx.fillStyle = state.borderColor;
+    targetCtx.fillRect(0, 0, fw, fh);
+    targetCtx.restore();
+  }
+
+  // Frame background
+  targetCtx.fillStyle = state.borderColor;
+  targetCtx.fillRect(0, 0, fw, fh);
+
+  // Subtle inner grain on border
+  targetCtx.save();
+  targetCtx.globalAlpha = 0.025;
+  const grd = targetCtx.createLinearGradient(0, 0, fw, fh);
+  grd.addColorStop(0, '#000');
+  grd.addColorStop(1, '#fff');
+  targetCtx.fillStyle = grd;
+  targetCtx.fillRect(0, 0, fw, fh);
+  targetCtx.restore();
+
+  // Photo area destination
+  const dstX = borderLR;
+  const dstY = borderT;
+  const dstW = photoW;
+  const dstH = photoH;
+
+  if (img) {
+    const src = getPhotoSourceRect();
+    // Apply zoom & pan offsets into source rect
+    const zoom = state.zoom;
+    const newSrcW = src.srcW / zoom;
+    const newSrcH = src.srcH / zoom;
+    const panX = (src.srcW - newSrcW) * (0.5 + state.offsetX / 200);
+    const panY = (src.srcH - newSrcH) * (0.5 + state.offsetY / 200);
+    const adjSrcX = src.srcX + panX;
+    const adjSrcY = src.srcY + panY;
+
+    // Clip to photo area
+    targetCtx.save();
+    targetCtx.beginPath();
+    targetCtx.rect(dstX, dstY, dstW, dstH);
+    targetCtx.clip();
+    targetCtx.drawImage(img, adjSrcX, adjSrcY, newSrcW, newSrcH, dstX, dstY, dstW, dstH);
+
+    // slight vignette on photo
+    const vig = targetCtx.createRadialGradient(
+      dstX + dstW / 2, dstY + dstH / 2, dstW * 0.3,
+      dstX + dstW / 2, dstY + dstH / 2, dstW * 0.75
+    );
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.18)');
+    targetCtx.fillStyle = vig;
+    targetCtx.fillRect(dstX, dstY, dstW, dstH);
+    targetCtx.restore();
+  } else {
+    // placeholder
+    targetCtx.fillStyle = '#ccc';
+    targetCtx.fillRect(dstX, dstY, dstW, dstH);
+  }
+
+  // Caption in bottom border
+  if (state.caption && borderB > 40) {
+    targetCtx.save();
+    const capFontSize = Math.round(borderB * 0.28);
+    targetCtx.font = `${capFontSize}px 'Special Elite', serif`;
+    targetCtx.fillStyle = isLightColor(state.borderColor) ? 'rgba(30,20,10,0.6)' : 'rgba(220,200,170,0.6)';
+    targetCtx.textAlign = 'center';
+    targetCtx.textBaseline = 'middle';
+    targetCtx.fillText(state.caption, fw / 2, borderT + photoH + borderB * 0.55, fw * 0.85);
+    targetCtx.restore();
+  }
+
+  // Subtle edge highlight (makes it look like glossy paper)
+  targetCtx.save();
+  targetCtx.strokeStyle = 'rgba(255,255,255,0.35)';
+  targetCtx.lineWidth = 1;
+  targetCtx.strokeRect(0.5, 0.5, fw - 1, fh - 1);
+  targetCtx.restore();
+}
+
+function isLightColor(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+}
+
+function render() {
+  const { fw, fh } = computeFrameDimensions();
+  canvas.width = fw;
+  canvas.height = fh;
+  drawPolaroid(ctx, fw, fh);
+}
+
+// ==============================
+// DRAG TO PAN
+// ==============================
+let dragging = false;
+let dragStart = { x: 0, y: 0, ox: 0, oy: 0 };
+
+canvas.addEventListener('mousedown', e => {
+  if (!state.img) return;
+  dragging = true;
+  dragStart = { x: e.clientX, y: e.clientY, ox: state.offsetX, oy: state.offsetY };
+  canvas.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = (e.clientX - dragStart.x) * 0.6;
+  const dy = (e.clientY - dragStart.y) * 0.6;
+  state.offsetX = Math.max(-100, Math.min(100, dragStart.ox + dx));
+  state.offsetY = Math.max(-100, Math.min(100, dragStart.oy + dy));
+  oxSlider.value = state.offsetX;
+  oySlider.value = state.offsetY;
+  document.getElementById('oxVal').textContent = Math.round(state.offsetX);
+  document.getElementById('oyVal').textContent = Math.round(state.offsetY);
+  render();
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  canvas.style.cursor = 'default';
+});
+
+// Touch drag
+let touchStart = null;
+canvas.addEventListener('touchstart', e => {
+  if (!state.img || e.touches.length !== 1) return;
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, ox: state.offsetX, oy: state.offsetY };
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (!touchStart || e.touches.length !== 1) return;
+  e.preventDefault();
+  const dx = (e.touches[0].clientX - touchStart.x) * 0.6;
+  const dy = (e.touches[0].clientY - touchStart.y) * 0.6;
+  state.offsetX = Math.max(-100, Math.min(100, touchStart.ox + dx));
+  state.offsetY = Math.max(-100, Math.min(100, touchStart.oy + dy));
+  oxSlider.value = state.offsetX;
+  oySlider.value = state.offsetY;
+  document.getElementById('oxVal').textContent = Math.round(state.offsetX);
+  document.getElementById('oyVal').textContent = Math.round(state.offsetY);
+  render();
+}, { passive: false });
+
+// ==============================
+// UPLOAD
+// ==============================
+function loadImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      state.img = img;
+      state.offsetX = 0; state.offsetY = 0; state.zoom = 1;
+      oxSlider.value = 0; oySlider.value = 0; zoomSlider.value = 100;
+      document.getElementById('oxVal').textContent = 0;
+      document.getElementById('oyVal').textContent = 0;
+      document.getElementById('zoomVal').textContent = '100%';
+      emptyState.style.display = 'none';
+      polaroidWrapper.style.display = 'inline-block';
+      exportBtn.disabled = false;
+      document.getElementById('overlayHint').style.opacity = '1';
+      setTimeout(() => { document.getElementById('overlayHint').style.opacity = ''; }, 2500);
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+fileInput.addEventListener('change', e => loadImage(e.target.files[0]));
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  loadImage(e.dataTransfer.files[0]);
+});
+
+// ==============================
+// CONTROLS
+// ==============================
+document.getElementById('frameFormats').addEventListener('click', e => {
+  const btn = e.target.closest('[data-frame]');
+  if (!btn) return;
+  document.querySelectorAll('[data-frame]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.frame = btn.dataset.frame;
+  render();
+});
+
+document.getElementById('cropFormats').addEventListener('click', e => {
+  const btn = e.target.closest('[data-crop]');
+  if (!btn) return;
+  document.querySelectorAll('[data-crop]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.crop = btn.dataset.crop;
+  render();
+});
+
+document.getElementById('borderColors').addEventListener('click', e => {
+  const sw = e.target.closest('[data-color]');
+  if (!sw || sw.dataset.color === 'custom') return;
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  sw.classList.add('active');
+  state.borderColor = sw.dataset.color;
+  render();
+});
+
+document.getElementById('customColor').addEventListener('input', e => {
+  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+  document.querySelector('.swatch-custom').classList.add('active');
+  state.borderColor = e.target.value;
+  render();
+});
+
+zoomSlider.addEventListener('input', () => {
+  state.zoom = zoomSlider.value / 100;
+  document.getElementById('zoomVal').textContent = zoomSlider.value + '%';
+  render();
+});
+oxSlider.addEventListener('input', () => {
+  state.offsetX = +oxSlider.value;
+  document.getElementById('oxVal').textContent = oxSlider.value;
+  render();
+});
+oySlider.addEventListener('input', () => {
+  state.offsetY = +oySlider.value;
+  document.getElementById('oyVal').textContent = oySlider.value;
+  render();
+});
+shadowSlider.addEventListener('input', () => {
+  state.shadow = shadowSlider.value / 100;
+  document.getElementById('shadowVal').textContent = shadowSlider.value + '%';
+  render();
+});
+
+captionInput.addEventListener('input', () => {
+  state.caption = captionInput.value;
+  render();
+});
+
+document.getElementById('exportFormats').addEventListener('click', e => {
+  const btn = e.target.closest('[data-fmt]');
+  if (!btn) return;
+  document.querySelectorAll('[data-fmt]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.exportFmt = btn.dataset.fmt;
+});
+
+// ==============================
+// EXPORT
+// ==============================
+exportBtn.addEventListener('click', () => {
+  const { fw, fh } = computeFrameDimensions();
+  const offscreen = document.createElement('canvas');
+  offscreen.width = fw;
+  offscreen.height = fh;
+  const offCtx = offscreen.getContext('2d');
+  drawPolaroid(offCtx, fw, fh, { noShadow: false });
+
+  const mimeMap = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' };
+  const ext = state.exportFmt;
+  const quality = ext === 'png' ? undefined : 0.93;
+  const url = offscreen.toDataURL(mimeMap[ext], quality);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `polaroid-${Date.now()}.${ext}`;
+  a.click();
+});
+
+// Init empty render
+render();
+</script>
+</body>
+</html>
